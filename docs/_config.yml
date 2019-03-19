@@ -1,0 +1,14 @@
+# name
+name: BBE Sensors
+
+# description
+description: Documentation site for BeagleBone Enhanced sensors.
+
+# site theme
+theme: jekyll-theme-minimal
+
+# author
+author: UND-ARC
+author_email: 
+
+show_downloads: true

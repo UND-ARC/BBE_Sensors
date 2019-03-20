@@ -1,7 +1,7 @@
 #STAGING_INCLUDE=$ROOTFS/../staging/usr/include
 #PKG_CONFIG_PATH=$(ROOTFS)/usr/lib/arm-linux-gnueabihf/pkgconfig
 CC=$(CROSS_COMPILE)gcc
-CFLAGS=-g -c -Wall -DLINUX
+CFLAGS=-g -c -Wall -Wextra -Wpedantic -DLINUX
 LDFLAGS= -L$(ROOTFS)/usr/lib -lm -L$(ROOTFS)/usr/lib/arm-linux-gnueabihf/ -lpthread
 CFLAGS+=-I$(PWD) -I/usr/include/
 		

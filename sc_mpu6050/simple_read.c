@@ -1,59 +1,60 @@
 //Simple read function for the accel/gyro on the BeagleBone Enhanced
 //(Most) comments added by ARC at the University of North Dakota
+//Original file can be found on the SanCloud GitHub repo BBE_Sensors
 
-#include <stdio.h> 	//usr/include/stdio.h
-#include <stdlib.h>	//.
-#include <unistd.h>	//.
-#include <sys/types.h>	//.
-#include <sys/stat.h>	//.
-#include <fcntl.h>	//.
+#include <stdio.h> 	    //usr/include/stdio.h
+#include <stdlib.h>	    //.
+#include <unistd.h>	    //.
+#include <sys/types.h>  //.
+#include <sys/stat.h>   //.
+#include <fcntl.h>	    //.
 #include <sys/select.h>	//.
-#include <pthread.h>	//.
-#include <string.h>	//.
-#include <ctype.h>	//.
+#include <pthread.h>	  //.
+#include <string.h>	    //.
+#include <ctype.h>	    //.
 
-#include "types.h"
-#include "sysfs_helper.h"
+#include "types.h"        //
+#include "sysfs_helper.h" //Identifies chip
 
 static pthread_t agread_id = NULL;		//
 
 //statics
 static char *dev_dir_name, *buf_dir_name;	//device directory name, buffer directory name
-static bool reader_runnning = false;		//Vestigial variable?
-static bool ag_pass = false;			//Test to see if (?) passes, return error if it doesn't
-static int ax, ay, az;				//Accel x, y, z
-static int gx, gy, gz;				//Gyro x, y, z
-static int cax, cay, caz;			//Calibration(?)accel x, y, z
-static int cgx, cgy, cgz;			//Calibration(?)gyro x, y, z
+static bool reader_runnning = false;		  //Vestigial variable?
+static bool ag_pass = false;			        //Test to see if (?) passes, return error if it doesn't
+static int ax, ay, az;			             	//Accel x, y, z
+static int gx, gy, gz;			             	//Gyro x, y, z
+static int cax, cay, caz;		             	//Calibration(?)accel x, y, z
+static int cgx, cgy, cgz;		             	//Calibration(?)gyro x, y, z
 static float fin_anglvel_scale, fin_accel_scale;//final(?) accel/velocity scale
-static float fx, fy, fz;			//final(?) x, y, z
-static float fgx, fgy, fgz;			//final(?) gyro(?) x, y, z
+static float fx, fy, fz;			            //final(?) x, y, z
+static float fgx, fgy, fgz;	          		//final(?) gyro(?) x, y, z
 
 //constants
 const char *iio_dir = "/sys/bus/iio/devices/";	//iio directory location
 
 //unsigneds
-//unsigned long timedelay = 100000;		//Vestigial variable?
-//unsigned long buf_len = 128;			//Why is this an unsigned long?
+//unsigned long timedelay = 100000;		//Vestigial variable
+//unsigned long buf_len = 128;			  //Vestigial variable
 
 //normal
-int ret, c, i;			//Arbitrary variables (counting, etc)
-int fp;				//File pointer
-//int err;			//Vestigial variable
-//int num_channels;		//Vestigial variable
+int ret, c, i;			        //Arbitrary variables (counting, etc)
+int fp;				              //File pointer
+//int err;			            //Vestigial variable
+//int num_channels;	        //Vestigial variable
 char *trigger_name = NULL;	//
-int datardytrigger = 1;		//Data ready trigger(?)
-char *data;			//The only self-documenting variable in this entire program
-//int read_size;		//Vestigial variable
-int dev_num, trig_num;		//??
-//char *buffer_access;		//Not used
-//int scan_size;		//Not used
-//int noevents = 0;		//Not used
+int datardytrigger = 1;		  //Data ready trigger(?)
+char *data;		             	//One of the only self-documenting variables in this entire program
+//int read_size;	          //Vestigial variable
+int dev_num, trig_num;	   	//??
+//char *buffer_access;	   	//Vestigial variable
+//int scan_size;	         	//Vestigial variable
+//int noevents = 0;	      	//Vestigial variable
 //int p_event = 0, nodmp = 0;	//Vestigial variables
-//char *dummy;			//Is this seriously an unused dummy variable?
-char chip_name[10];		//
-char device_name[10];		//Device name; used to decide which iio:device we are using
-char sysfs[100];		//
+//char *dummy;		        	//Is this seriously an unused dummy variable?
+char chip_name[10];	      	//Self-documenting. Why isn't this a char*?
+char device_name[10];	    	//Also self-documenting; used to decide which iio:device we are using. Should be a char*
+char sysfs[100];	         	//sysfs file path(?). Again, this should be a char*
 
 
 //???
@@ -134,7 +135,7 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 			return -ENOMEM;
 		}
 
-		
+
 		sprintf(temp, "%s/%s", basedir, filename);
 		sysfsfp = fopen(temp, "r");
 		if (sysfsfp == NULL) {
@@ -150,7 +151,7 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 }
 
 /**************************************************************************
- * Function Name  : ag_read_thread (changed from read_thread)
+ * Function Name  : ag_read_thread (comment changed from read_thread)
  * Parameter      : none(there's an argument here)
  * Description    : Thread to supply gyro and accel data over a socket
  * Return         : None
@@ -204,10 +205,12 @@ void* ag_read_thread(void* arg) {
             gyrData[1] = gy;
             gyrData[2] = gz;
 
+            //Based on Google searches, ComplementaryFilter seems to be important to INS design. However, I can't find the function.
             ComplementaryFilter(accData, gyrData, &pitch, &roll);
             //DEBUG_MSG( "pitch %7.2f roll %7.2f \n", pitch, roll);
 #endif
 
+            //It looks like this chunk of code calibrates the gyros if it's tilted more than 10 units in a direction.
             if (abs(gx) < 10) {
                 gx = 0;
             }
@@ -220,6 +223,8 @@ void* ag_read_thread(void* arg) {
                 gz = 0;
             }
 
+
+            //Likewise, this chunk calibrates the accelerometers
             if (abs(ax) < 10) {
                 ax = 0;
             }
@@ -239,13 +244,12 @@ void* ag_read_thread(void* arg) {
             fgy = gy * fin_anglvel_scale;
             fgz = gz * fin_anglvel_scale;
 
-            //Convert from radians to degrees......
+            //Convert from radians to degrees
             fgx *= 57.29577951307855f;
             fgy *= 57.29577951307855f;
             fgz *= 57.29577951307855f;
 
             	DEBUG_MSG( "%05d %05d %05d  %7.2f %7.2f %7.2f      %05d %05d %05d  %7.2f %7.2f %7.2f\n", gz, gx, gy, fgz, fgx, fgy, az, ax, ay, fz, fx, fy);
-            //If required do a simple calibration routine for
 
  			//Scale as the result is deg/s and our timebase is 100ms (10 times a second)
 		    fgy /= 100.0f;
@@ -270,18 +274,18 @@ error_out:
 //
 int discover (void)
 {
-	int ret = 0;	//Return variable, declared globally
-	int asret = 0;
+	int ret = 0;	 //Return variable, declared globally
+	int asret = 0; //Allocated string return
 
 //    DEBUG_MSG("Getting sysfs path\n");
     if (sc_get_sysfs_path(sysfs) != SC_SUCCESS) {
-        DEBUG_MSG("get sysfs path fail\n");
+        DEBUG_MSG("Failed to get sysfs path\n");
         ret = -ENODEV;
         goto error_ret;
     }
 //    DEBUG_MSG("sss:::%s\n", sysfs);
     if (sc_get_chip_name(chip_name) != SC_SUCCESS) {
-        DEBUG_MSG("get chip name fail\n");
+        DEBUG_MSG("Failed to get chip name\n");
         ret = -ENODEV;
         goto error_ret;
     }
@@ -296,7 +300,7 @@ int discover (void)
     /* Find the device requested */
     dev_num = find_type_by_name(device_name, "iio:device");//find_type_by_name() can be found in sysfs_helper.c
     if (dev_num < 0) {
-        DEBUG_MSG("Failed to find the %s\n", device_name);
+        DEBUG_MSG("Failed to find %s\n", device_name);
         ret = -ENODEV;
         goto error_ret;
     }
@@ -312,11 +316,13 @@ int discover (void)
          * number found above
          */
     	asret = asprintf(&trigger_name, "%s-dev%d", device_name, dev_num);
+      //Check this if statement - I think asret is null if memory is empty
         if (asret < 0) {
             ret = -ENOMEM;	//ENOMEM = Error: NO MEMory
             goto error_ret;
         }
     }
+
     /* Verify the trigger exists */
     trig_num = find_type_by_name(trigger_name, "trigger");
     if (trig_num < 0) {
@@ -332,7 +338,11 @@ int discover (void)
 
 
 
-
+/*Things to check (posted 21/03/2019)
+-Is err even needed?
+-Is reader_running needed?
+-
+*/
 int main(void)
 {
   int err;
@@ -358,8 +368,7 @@ int main(void)
   }
 
  error_exit:
-  close(fp);
-
+  close(fp);  //Close filepath
 
   if(ag_pass){
   	ret = 0;
@@ -369,6 +378,7 @@ int main(void)
       DEBUG_MSG("Test error %d\n", ret);
   }
 
+  //Free memory
   free(buf_dir_name);
   if (datardytrigger)
 	free(trigger_name);

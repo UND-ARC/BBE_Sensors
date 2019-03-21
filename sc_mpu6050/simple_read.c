@@ -1,5 +1,5 @@
-//Simple read function for the accel/gyro on the Beaglebone Enhanced
-//Comments added by ARC at the University of North Dakota
+//Simple read function for the accel/gyro on the BeagleBone Enhanced
+//(Most) comments added by ARC at the University of North Dakota
 
 #include <stdio.h> 	//usr/include/stdio.h
 #include <stdlib.h>	//.
@@ -20,7 +20,7 @@ static pthread_t agread_id = NULL;		//
 //statics
 static char *dev_dir_name, *buf_dir_name;	//device directory name, buffer directory name
 static bool reader_runnning = false;		//Vestigial variable?
-static bool ag_pass = false;			//
+static bool ag_pass = false;			//Test to see if (?) passes, return error if it doesn't
 static int ax, ay, az;				//Accel x, y, z
 static int gx, gy, gz;				//Gyro x, y, z
 static int cax, cay, caz;			//Calibration(?)accel x, y, z
@@ -33,24 +33,24 @@ static float fgx, fgy, fgz;			//final(?) gyro(?) x, y, z
 const char *iio_dir = "/sys/bus/iio/devices/";	//iio directory location
 
 //unsigneds
-unsigned long timedelay = 100000;		//Vestigial variable?
-unsigned long buf_len = 128;			//Why is this an unsigned long?
+//unsigned long timedelay = 100000;		//Vestigial variable?
+//unsigned long buf_len = 128;			//Why is this an unsigned long?
 
 //normal
-int ret, c, i;			//
-int fp;				//
-int err;			//Also declared in main
-int num_channels;		//
+int ret, c, i;			//Arbitrary variables (counting, etc)
+int fp;				//File pointer
+//int err;			//Vestigial variable
+//int num_channels;		//Vestigial variable
 char *trigger_name = NULL;	//
 int datardytrigger = 1;		//Data ready trigger(?)
 char *data;			//The only self-documenting variable in this entire program
-int read_size;			//
-int dev_num, trig_num;		//
-char *buffer_access;		//
-int scan_size;			//
-int noevents = 0;		//
-int p_event = 0, nodmp = 0;	//
-char *dummy;			//Is this a dummy variable?
+//int read_size;		//Vestigial variable
+int dev_num, trig_num;		//??
+//char *buffer_access;		//Not used
+//int scan_size;		//Not used
+//int noevents = 0;		//Not used
+//int p_event = 0, nodmp = 0;	//Vestigial variables
+//char *dummy;			//Is this seriously an unused dummy variable?
 char chip_name[10];		//
 char device_name[10];		//Device name; used to decide which iio:device we are using
 char sysfs[100];		//
@@ -255,8 +255,7 @@ void* ag_read_thread(void* arg) {
 		    loop_count++;
             //DEBUG_MSG("%7.2f, %7.2f, %7.2f\n", fz, fx, fy);
 
-            //10ms sample rate
-            usleep(10);
+            usleep(100000);//10ms sample rate
         }
     }
 error_out:
@@ -359,10 +358,9 @@ int main(void)
   }
 
  error_exit:
-
   close(fp);
 
-  //We are going to return SUCCESS!!!!
+
   if(ag_pass){
   	ret = 0;
       DEBUG_MSG("Test SUCCESS\n");

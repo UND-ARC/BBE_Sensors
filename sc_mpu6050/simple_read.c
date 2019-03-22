@@ -2,92 +2,107 @@
 //(Most) comments added by ARC at the University of North Dakota
 //Original file can be found on the SanCloud GitHub repo BBE_Sensors
 
-#include <stdio.h> 	    //usr/include/stdio.h
+
+/*THINGS TO TRY:
+*Remove len from read_sysfs_posint
+*Remove len from read_sysfs_string
+*Rremove err from main
+*/
+
+
+
+#include <stdio.h> 	    //This line was originally #include "usr/include/stdio.h"
 #include <stdlib.h>	    //.
 #include <unistd.h>	    //.
-#include <sys/types.h>  //.
-#include <sys/stat.h>   //.
+#include <sys/types.h>      //.
+#include <sys/stat.h>       //.
 #include <fcntl.h>	    //.
-#include <sys/select.h>	//.
-#include <pthread.h>	  //.
+#include <sys/select.h>	    //.
+#include <pthread.h>	    //.
 #include <string.h>	    //.
 #include <ctype.h>	    //.
 
-#include "types.h"        //
-#include "sysfs_helper.h" //Identifies chip
+#include "types.h"          //
+#include "sysfs_helper.h"   //Identifies chip
 
 static pthread_t agread_id = NULL;		//
 
 //statics
-static char *dev_dir_name, *buf_dir_name;	//device directory name, buffer directory name
-static bool reader_runnning = false;		  //Vestigial variable?
-static bool ag_pass = false;			        //Test to see if (?) passes, return error if it doesn't
-static int ax, ay, az;			             	//Accel x, y, z
-static int gx, gy, gz;			             	//Gyro x, y, z
-static int cax, cay, caz;		             	//Calibration(?)accel x, y, z
-static int cgx, cgy, cgz;		             	//Calibration(?)gyro x, y, z
+static char *dev_dir_name, *buf_dir_name;	//Device directory name, buffer directory name (?)
+static bool reader_runnning = false;		//Used to determine if the thread in main has finished
+static bool ag_pass = false;		        //Test to see if accel/gyro test passes, return error if it doesn't
+static int ax, ay, az;		           	//Accel x, y, z
+static int gx, gy, gz;		        	//Gyro x, y, z
+static int cax, cay, caz;		       	//Calibration(?)accel x, y, z
+static int cgx, cgy, cgz;	             	//Calibration(?)gyro x, y, z
 static float fin_anglvel_scale, fin_accel_scale;//final(?) accel/velocity scale
-static float fx, fy, fz;			            //final(?) x, y, z
-static float fgx, fgy, fgz;	          		//final(?) gyro(?) x, y, z
+static float fx, fy, fz;	                //final(?) x, y, z
+static float fgx, fgy, fgz;          		//final(?) gyro(?) x, y, z
 
 //constants
 const char *iio_dir = "/sys/bus/iio/devices/";	//iio directory location
 
 //unsigneds
 //unsigned long timedelay = 100000;		//Vestigial variable
-//unsigned long buf_len = 128;			  //Vestigial variable
+//unsigned long buf_len = 128;			//Vestigial variable
 
 //normal
 int ret, c, i;			        //Arbitrary variables (counting, etc)
-int fp;				              //File pointer
-//int err;			            //Vestigial variable
-//int num_channels;	        //Vestigial variable
-char *trigger_name = NULL;	//
-int datardytrigger = 1;		  //Data ready trigger(?)
+int fp;				        //File pointer
+//int err;			        //Vestigial variable (redeclared in main)
+//int num_channels;	        	//Vestigial variable
+char *trigger_name = NULL;		//Wow, they actually used a char* for a name.
+int datardytrigger = 1;		  	//Data ready trigger(?)
 char *data;		             	//One of the only self-documenting variables in this entire program
-//int read_size;	          //Vestigial variable
-int dev_num, trig_num;	   	//??
-//char *buffer_access;	   	//Vestigial variable
+//int read_size;	          	//Vestigial variable
+int dev_num, trig_num;	   		//Device number/trigger number
+//char *buffer_access;	   		//Vestigial variable
 //int scan_size;	         	//Vestigial variable
-//int noevents = 0;	      	//Vestigial variable
-//int p_event = 0, nodmp = 0;	//Vestigial variables
+//int noevents = 0;	      		//Vestigial variable
+//int p_event = 0, nodmp = 0;		//Vestigial variables
 //char *dummy;		        	//Is this seriously an unused dummy variable?
-char chip_name[10];	      	//Self-documenting. Why isn't this a char*?
-char device_name[10];	    	//Also self-documenting; used to decide which iio:device we are using. Should be a char*
-char sysfs[100];	         	//sysfs file path(?). Again, this should be a char*
+char chip_name[10];	      		//Self-documenting. Why isn't this a char*?
+char device_name[10];	    		//Used to decide which iio:device we are using. Should this be a char*?
+char sysfs[100];	         	//sysfs file path(?). Again, this should probably be a char*.
 
 
-//???
+//read system filesystem(??) position(?) integer
 int read_sysfs_posint(char *filename, char *basedir, int* val) {
-    int ret = 0;	//Originally declared globally
-    int len = 0;	//^           ^              ^
-    FILE *sysfsfp;	//
-    char buff[20] = {0};//
-    char *endptr;	//
-    int filedesc;	//
-    long newval = 0;
+    int ret = 0;	//Return (originally declared globally)
+    int len = 0;	//length(?) (originally global)
+    FILE *sysfsfp;	//sysfs filepath(?)
+    char buff[20] = {0};//Buffer of size 20 initialized to 0
+    char *endptr;	//End pointer
+    int filedesc;	//File description (a small, non-negative integer for use in subsequent system calls)
+    long newval = 0;	//A new value that's not exactly self-documenting
 
     if(val != NULL){
+
+		//Try to allocate memory, return error if we can't
 		char *temp = malloc(strlen(basedir) + strlen(filename));
 		if (temp == NULL) {
 			DEBUG_MSG("Memory allocation failed");
-			return -ENOMEM;
+			return -ENOMEM;		//Error: No memory
 		}
+
+		//Print temp to a string
 		sprintf(temp, "%s/%s", basedir, filename);
-		sysfsfp = fopen(temp, "r");
+		sysfsfp = fopen(temp, "r");	//open the file temp
 		if (sysfsfp == NULL) {
 			ret = -errno;
 			goto error_free;
 		}
 
-		filedesc = open( temp, O_RDONLY );
-		len = 20;
-		len = read( filedesc, buff, len ); 	//there was data to read
-	    	//len=len;				//This line is literally useless, so we commented it out
-		close(filedesc);			//
-		newval = strtol(buff, &endptr, 10);	//
-		*val = (int)newval;			//
-		fclose(sysfsfp);			//
+		//What exactly is in the file descriptor?
+		filedesc = open( temp, O_RDONLY );	//Open the file descriptor for read only
+		len = 20;				//Initialize length of filedesc?
+		len = read( filedesc, buff, len ); 	//read from filedesc into the buffer
+	    	//len=len;				//???
+		close(filedesc);			//Self-documenting
+
+		newval = strtol(buff, &endptr, 10);	//Read the string buff to a long newval, base 10. Store the 								address of the first invalid character in endptr
+		*val = (int)newval;			//Why not just use atoi?
+		fclose(sysfsfp);			//Self-documenting
 		error_free: free(temp);			//
     }
     return ret;
@@ -116,7 +131,7 @@ int read_sysfs_float(char *filename, char *basedir, float *val) {
     }
     len = fscanf(sysfsfp, "%f\n", val);
     //len=len;		//reddit.com/r/badcode
-    fclose(sysfsfp);
+    fclose(sysfsfp);	//Close the file sysfsfp
     error_free: free(temp);
     return ret;
 }
@@ -143,7 +158,7 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 			goto error_free;
 		}
 		len = fscanf(sysfsfp, "%s\n", val);
-	    len=len;
+	    	len=len;
 		fclose(sysfsfp);
 		error_free: free(temp);
     }
@@ -339,30 +354,32 @@ int discover (void)
 
 
 /*Things to check (posted 21/03/2019)
--Is err even needed?
+-Is err needed?
 -Is reader_running needed?
--
+-What does ag stand for?
 */
 int main(void)
 {
-  int err;
-  char *b;
+  int err;	//This can probably be deleted - see pthread_join
+  char *b;	//This can probably be a void** - see pthread_join
 
   ret = discover();
 
   if( ret )
 	  goto error_exit;
-
+	
+  //Create a thread and check to make sure it's running every 20ms
   err = pthread_create(&agread_id, NULL, &ag_read_thread, NULL);
   err = err;		//If you comment this out, you get a compiler warning. Otherwise, see reddit.com/r/badcode
 
   reader_runnning = true;
 
-  //I don't think this does anything
   while(reader_runnning){
 	  usleep(200000);
+	printf("test\n");
   }
 
+  //Join the thread
   if (agread_id != 0) {
       pthread_join(agread_id, (void**) &b);
   }
@@ -370,6 +387,7 @@ int main(void)
  error_exit:
   close(fp);  //Close filepath
 
+  //Return a message to tell us whether the accel gyro test passed
   if(ag_pass){
   	ret = 0;
       DEBUG_MSG("Test SUCCESS\n");

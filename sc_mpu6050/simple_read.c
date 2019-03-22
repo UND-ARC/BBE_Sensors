@@ -60,7 +60,7 @@ int dev_num, trig_num;	   		//Device number/trigger number
 //int scan_size;	         	//Vestigial variable
 //int noevents = 0;	      		//Vestigial variable
 //int p_event = 0, nodmp = 0;		//Vestigial variables
-//char *dummy;		        	//Is this seriously an unused dummy variable?
+//char *dummy;		        	//Unused dummy variable?
 char chip_name[10];	      		//Self-documenting. Why isn't this a char*?
 char device_name[10];	    		//Used to decide which iio:device we are using. Should this be a char*?
 char sysfs[100];	         	//sysfs file path(?). Again, this should probably be a char*.
@@ -167,7 +167,7 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 
 /**************************************************************************
  * Function Name  : ag_read_thread (comment changed from read_thread)
- * Parameter      : none(there's an argument here)
+ * Parameter      : none
  * Description    : Thread to supply gyro and accel data over a socket
  * Return         : None
  * Scope          : GLOBAL
@@ -286,22 +286,23 @@ error_out:
 
 
 
-//
+//Discover the device
 int discover (void)
 {
-	int ret = 0;	 //Return variable, declared globally
-	int asret = 0; //Allocated string return
+	int ret = 0;	 //Return variable, also declared globally
+	int asret = 0; 	 //Allocated string return
 
 //    DEBUG_MSG("Getting sysfs path\n");
     if (sc_get_sysfs_path(sysfs) != SC_SUCCESS) {
         DEBUG_MSG("Failed to get sysfs path\n");
-        ret = -ENODEV;
+        ret = -ENODEV;	//Error: No device
         goto error_ret;
     }
+
 //    DEBUG_MSG("sss:::%s\n", sysfs);
     if (sc_get_chip_name(chip_name) != SC_SUCCESS) {
         DEBUG_MSG("Failed to get chip name\n");
-        ret = -ENODEV;
+        ret = -ENODEV;	//Error: No device
         goto error_ret;
     }
     DEBUG_MSG("chip_name=%s\n", chip_name);
@@ -316,7 +317,7 @@ int discover (void)
     dev_num = find_type_by_name(device_name, "iio:device");//find_type_by_name() can be found in sysfs_helper.c
     if (dev_num < 0) {
         DEBUG_MSG("Failed to find %s\n", device_name);
-        ret = -ENODEV;
+        ret = -ENODEV;	//Error: No device
         goto error_ret;
     }
 
@@ -363,12 +364,12 @@ int main(void)
   int err;	//This can probably be deleted - see pthread_join
   char *b;	//This can probably be a void** - see pthread_join
 
-  ret = discover();
+  ret = discover();	//Discover the device, return null if valid.
 
   if( ret )
 	  goto error_exit;
 	
-  //Create a thread and check to make sure it's running every 20ms
+  //Create a thread that runs the function ag_read_thread and check to make sure it's running every 20ms
   err = pthread_create(&agread_id, NULL, &ag_read_thread, NULL);
   err = err;		//If you comment this out, you get a compiler warning. Otherwise, see reddit.com/r/badcode
 

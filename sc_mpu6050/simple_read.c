@@ -96,8 +96,7 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
 		//What exactly is in the file descriptor?
 		filedesc = open( temp, O_RDONLY );	//Open the file descriptor for read only
 		len = 20;				//Initialize length of filedesc?
-		len = read( filedesc, buff, len ); 	//read from filedesc into the buffer
-	    	//len=len;				//???
+		read( filedesc, buff, len );	 	//read from filedesc into the buffer
 		close(filedesc);			//Self-documenting
 
 		newval = strtol(buff, &endptr, 10);	//Read the string buff to a long newval, base 10. Store the 								address of the first invalid character in endptr
@@ -212,7 +211,7 @@ void* ag_read_thread(void* arg) {
         	if(ag_pass == false)
         		goto error_out;
 
-#if defined __COMPLIMENTARY_FILTER__
+/*#if defined __COMPLIMENTARY_FILTER__
             accData[0] = ax;
             accData[1] = ay;
             accData[2] = az;
@@ -222,8 +221,8 @@ void* ag_read_thread(void* arg) {
 
             //Based on Google searches, ComplementaryFilter seems to be important to INS design. However, I can't find the function.
             ComplementaryFilter(accData, gyrData, &pitch, &roll);
-            //DEBUG_MSG( "pitch %7.2f roll %7.2f \n", pitch, roll);
-#endif
+            DEBUG_MSG( "pitch %7.2f roll %7.2f \n", pitch, roll);
+#endif*/
 
             //It looks like this chunk of code calibrates the gyros if it's tilted more than 10 units in a direction.
             if (abs(gx) < 10) {

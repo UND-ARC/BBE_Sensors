@@ -6,7 +6,7 @@
 /*THINGS TO TRY:
 *Remove len from read_sysfs_posint
 *Remove len from read_sysfs_string
-*Rremove err from main
+*Remove err from main
 */
 
 
@@ -377,7 +377,6 @@ int main(void)
 
   while(reader_runnning){
 	  usleep(200000);
-	printf("test\n");
   }
 
   //Join the thread

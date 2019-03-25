@@ -4,9 +4,10 @@
 
 
 /*THINGS TO TRY:
-*Remove len from read_sysfs_posint
+*Remove len from read_sysfs_posint -- DONE
 *Remove len from read_sysfs_string
 *Remove err from main
+**Make your own code that reads some data in
 */
 
 
@@ -33,8 +34,6 @@ static bool reader_runnning = false;		//Used to determine if the thread in main 
 static bool ag_pass = false;		        //Test to see if accel/gyro test passes, return error if it doesn't
 static int ax, ay, az;		           	//Accel x, y, z
 static int gx, gy, gz;		        	//Gyro x, y, z
-static int cax, cay, caz;		       	//Calibration(?)accel x, y, z
-static int cgx, cgy, cgz;	             	//Calibration(?)gyro x, y, z
 static float fin_anglvel_scale, fin_accel_scale;//final(?) accel/velocity scale
 static float fx, fy, fz;	                //final(?) x, y, z
 static float fgx, fgy, fgz;          		//final(?) gyro(?) x, y, z
@@ -42,25 +41,13 @@ static float fgx, fgy, fgz;          		//final(?) gyro(?) x, y, z
 //constants
 const char *iio_dir = "/sys/bus/iio/devices/";	//iio directory location
 
-//unsigneds
-//unsigned long timedelay = 100000;		//Vestigial variable
-//unsigned long buf_len = 128;			//Vestigial variable
-
 //normal
 int ret, c, i;			        //Arbitrary variables (counting, etc)
 int fp;				        //File pointer
-//int err;			        //Vestigial variable (redeclared in main)
-//int num_channels;	        	//Vestigial variable
 char *trigger_name = NULL;		//Wow, they actually used a char* for a name.
 int datardytrigger = 1;		  	//Data ready trigger(?)
 char *data;		             	//One of the only self-documenting variables in this entire program
-//int read_size;	          	//Vestigial variable
 int dev_num, trig_num;	   		//Device number/trigger number
-//char *buffer_access;	   		//Vestigial variable
-//int scan_size;	         	//Vestigial variable
-//int noevents = 0;	      		//Vestigial variable
-//int p_event = 0, nodmp = 0;		//Vestigial variables
-//char *dummy;		        	//Unused dummy variable?
 char chip_name[10];	      		//Self-documenting. Why isn't this a char*?
 char device_name[10];	    		//Used to decide which iio:device we are using. Should this be a char*?
 char sysfs[100];	         	//sysfs file path(?). Again, this should probably be a char*.
@@ -73,7 +60,7 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
     FILE *sysfsfp;	//sysfs filepath(?)
     char buff[20] = {0};//Buffer of size 20 initialized to 0
     char *endptr;	//End pointer
-    int filedesc;	//File description (a small, non-negative integer for use in subsequent system calls)
+    int filedesc;	//File descriptor (a small, non-negative integer for use in subsequent system calls)
     long newval = 0;	//A new value that's not exactly self-documenting
 
     if(val != NULL){
@@ -96,8 +83,7 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
 		//What exactly is in the file descriptor?
 		filedesc = open( temp, O_RDONLY );	//Open the file descriptor for read only
 		len = 20;				//Initialize length of filedesc?
-		len = read( filedesc, buff, len ); 	//read from filedesc into the buffer
-	    	//len=len;				//???
+		read( filedesc, buff, len ); 		//read from filedesc into the buffer
 		close(filedesc);			//Self-documenting
 
 		newval = strtol(buff, &endptr, 10);	//Read the string buff to a long newval, base 10. Store the 								address of the first invalid character in endptr
@@ -111,7 +97,6 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
 //
 int read_sysfs_float(char *filename, char *basedir, float *val) {
     int ret = 0;//Also declared globally
-    int len = 0;//^        ^           ^
     FILE *sysfsfp;	//Some kind of file
 
     //Allocate memory for temp
@@ -129,8 +114,7 @@ int read_sysfs_float(char *filename, char *basedir, float *val) {
         ret = -errno;
         goto error_free;
     }
-    len = fscanf(sysfsfp, "%f\n", val);
-    //len=len;		//reddit.com/r/badcode
+    fscanf(sysfsfp, "%f\n", val);
     fclose(sysfsfp);	//Close the file sysfsfp
     error_free: free(temp);
     return ret;
@@ -178,14 +162,6 @@ void* ag_read_thread(void* arg) {
 	read_sysfs_float("in_anglvel_scale", dev_dir_name, &fin_anglvel_scale);
     	read_sysfs_float("in_accel_scale", dev_dir_name, &fin_accel_scale);
 
-    //Calibration initialisation
-    cax = 0;
-    cay = 0;
-    caz = 0;
-    cgx = 0;
-    cgy = 0;
-    cgz = 0;
-
     {
         //Put the column headers up...
         DEBUG_MSG( "  gz    gx    gy      fgz     fgx     fgy         az    ax    ay       faz     fax     fay\n");
@@ -211,19 +187,6 @@ void* ag_read_thread(void* arg) {
     		//We need to exit out and fail.. no point continuing
         	if(ag_pass == false)
         		goto error_out;
-
-#if defined __COMPLIMENTARY_FILTER__
-            accData[0] = ax;
-            accData[1] = ay;
-            accData[2] = az;
-            gyrData[0] = gx;
-            gyrData[1] = gy;
-            gyrData[2] = gz;
-
-            //Based on Google searches, ComplementaryFilter seems to be important to INS design. However, I can't find the function.
-            ComplementaryFilter(accData, gyrData, &pitch, &roll);
-            //DEBUG_MSG( "pitch %7.2f roll %7.2f \n", pitch, roll);
-#endif
 
             //It looks like this chunk of code calibrates the gyros if it's tilted more than 10 units in a direction.
             if (abs(gx) < 10) {

@@ -1,35 +1,72 @@
-//Interial navigation system - Designed for ARC at the University of North Dakota
+//Simple interial navigation system - Designed by ARC at the University of North Dakota
 
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+float GPS(const char dimension)
+{
+	//Our position in one dimension, should be accurate to within 10 meters
+	//We'll need to know how to read from the GPS in order to fill this section in.
+}
+
+float INS(float a, float po, float vo, int t)
+{
+	return po + ((vo + (a*t))*t);
+}
+
+void SEND(float t, float x, float y, float z)
+{
+	//TEMPORARY CODE UNTIL TELEMETRY IS FINISHED
+	printf("t: %.2f x:%.2f y:%.2f z:%.2f\n", time, x, y, z);
+}
 
 void main(void)
 {
-	int x, y, z;	//Position (calculated, x = xo + vt)
-	int xo, yo, zo = 0;	//Initial position (previous position)
-	int vox, voy, voz = 0;	//Initial velocity (previous velocity)
-	int vx, vy, vz;	//Velocity (calculated, v = vo + at)
-	int ax, ay, az;	//Acceleration (measured)
+	float x, y, z;			//Position (calculated, x = xo + vt)
+	float xo, yo, zo = 0;		//Initial position (previous position)
+	float vox, voy, voz = 0;	//Initial velocity (previous velocity)
+	float vx, vy, vz;		//Velocity (calculated, v = vo + at)
+	float ax, ay, az;		//Acceleration (measured)
+	int t;
 
 	while(1)
 	{
+		//
 		//IF we have gps
-			//THEN
+		if(y < 16000 && vy < 450)
+		{
 			//get x position from gps
 			x = GPS("x");
 			//Get z position from gps
 			z = GPS("z");
-		//Otherwise
+		}
+
+		else
+		{
 			//Get x from INS
+			x = INS(ax, xo, vox, t);
 			//Get z from INS
-		//IF we're below 50KM
+			z = INS(az, zo, voz, t);
+		}
+
+		//IF we have changes in barometer
+		if(y < 50)
+		{
 		  //THEN get y from barometer
 			y = BAROMETER();
-		//Otherwise
+		}
+
+		else
+		{
+			//get y acceleration
+			ay = ACCEL();
 		 	//get y from ins
+			y = INS(ay, yo, voy, t);
+		}
 		//Send x, y, z to ground
-		SEND(x, y, z);	//As a wise man once said: send it.
+		SEND(t, x, y, z);	//As a wise man once said: send it.
 	}
 }

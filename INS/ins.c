@@ -1,4 +1,5 @@
-//Simple interial navigation system - Designed by ARC at the University of North Dakota
+//Simple interial navigation system using the BeagleBone Enhanced onboard sensors
+//Designed by ARC at the University of North Dakota
 
 #include <stdio.h>
 #include <math.h>
@@ -25,12 +26,13 @@ void SEND(float t, float x, float y, float z)
 
 void main(void)
 {
+	//Units: Meters, seconds
 	float x, y, z;			//Position (calculated, x = xo + vt)
 	float xo, yo, zo = 0;		//Initial position (previous position)
 	float vox, voy, voz = 0;	//Initial velocity (previous velocity)
 	float vx, vy, vz;		//Velocity (calculated, v = vo + at)
 	float ax, ay, az;		//Acceleration (measured)
-	int t;
+	int to, t;			//Initial time, end time
 
 	while(1)
 	{
@@ -52,13 +54,14 @@ void main(void)
 			z = INS(az, zo, voz, t);
 		}
 
-		//IF we have changes in barometer
-		if(y < 50)
+		//IF we have large changes in barometer (ie. If we're below 50k km
+		if(y < 50000)
 		{
 		  //THEN get y from barometer
 			y = BAROMETER();
 		}
-
+		
+		//Otherwise, get y from INS
 		else
 		{
 			//get y acceleration
@@ -66,6 +69,7 @@ void main(void)
 		 	//get y from ins
 			y = INS(ay, yo, voy, t);
 		}
+
 		//Send x, y, z to ground
 		SEND(t, x, y, z);	//As a wise man once said: send it.
 	}

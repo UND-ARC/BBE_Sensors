@@ -3,6 +3,9 @@
 //Original file can be found on the SanCloud GitHub repo BBE_Sensors
 
 
+//The BBE reads its sensors into files found in /sys/bus/iio/devices/iio:device1
+//Sysfs refers to the system's filesystem, which basically means that all info (whether a pin is active or inactive, etc) is found in a file somewhere on the BagelBone.
+
 /*THINGS TO TRY:
 *Remove len from read_sysfs_posint -- DONE
 *Remove len from read_sysfs_string
@@ -53,7 +56,7 @@ char device_name[10];	    		//Used to decide which iio:device we are using. Shou
 char sysfs[100];	         	//sysfs file path(?). Again, this should probably be a char*.
 
 
-//read system filesystem(??) position(?) integer
+//read system filesystem position integer
 int read_sysfs_posint(char *filename, char *basedir, int* val) {
     int ret = 0;	//Return (originally declared globally)
     int len = 0;	//length(?) (originally global)
@@ -95,7 +98,6 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
     return ret;
 }
 
-//
 int read_sysfs_float(char *filename, char *basedir, float *val) {
     int ret = 0;//Also declared globally
     FILE *sysfsfp;	//Some kind of file
@@ -189,18 +191,6 @@ void* ag_read_thread(void* arg) {
         	if(ag_pass == false)
         		goto error_out;
 
-/*#if defined __COMPLIMENTARY_FILTER__
-            accData[0] = ax;
-            accData[1] = ay;
-            accData[2] = az;
-            gyrData[0] = gx;
-            gyrData[1] = gy;
-            gyrData[2] = gz;
-
-            //Based on Google searches, ComplementaryFilter seems to be important to INS design. However, I can't find the function.
-            ComplementaryFilter(accData, gyrData, &pitch, &roll);
-            DEBUG_MSG( "pitch %7.2f roll %7.2f \n", pitch, roll);
-#endif*/
             //It looks like this chunk of code calibrates the gyros if it's tilted more than 10 units in a direction.
             if (abs(gx) < 10) {
                 gx = 0;

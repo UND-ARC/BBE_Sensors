@@ -29,7 +29,7 @@
 #include "types.h"          //
 #include "sysfs_helper.h"   //Identifies chip
 
-static pthread_t agread_id = NULL;		//
+static pthread_t agread_id;		//
 
 //statics
 static char *dev_dir_name, *buf_dir_name;	//Device directory name, buffer directory name (?)
@@ -153,20 +153,20 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 }
 
 /**************************************************************************
- * Function Name  : ag_read_thread (comment changed from read_thread)
+ * Function Name  : ag_read_thread (comment changed from read_thread - SJB)
  * Parameter      : none
  * Description    : Thread to supply gyro and accel data over a socket
  * Return         : None
  * Scope          : GLOBAL
  * Comment        : -
  **************************************************************************/
-void* ag_read_thread(void* arg) {
+void* ag_read_thread() {
 	int loop_count = 0;
 	read_sysfs_float("in_anglvel_scale", dev_dir_name, &fin_anglvel_scale);
     	read_sysfs_float("in_accel_scale", dev_dir_name, &fin_accel_scale);
 
     {
-        //Put the column headers up...
+        //Put the column headers up
         DEBUG_MSG( "  gz    gx    gy      fgz     fgx     fgy         az    ax    ay       faz     fax     fay\n");
 
         while ( (loop_count < 20) && (reader_runnning) ) {
@@ -273,7 +273,7 @@ int discover (void)
     }
     DEBUG_MSG("chip_name=%s\n", chip_name);
 
-    for (i = 0; i < strlen(chip_name); i++) {
+    for (i = 0; i < (int)(strlen(chip_name)); i++) {
         device_name[i] = tolower(chip_name[i]);
     }
 //    device_name[strlen(chip_name)] = '\0';
@@ -288,7 +288,7 @@ int discover (void)
     }
 
 //    DEBUG_MSG("iio device number being used is %d\n", dev_num);
-    asprintf(&dev_dir_name, "%siio:device%d", iio_dir, dev_num);
+    asprintf(dev_dir_name, "%siio:device%d", iio_dir, dev_num);
     if (trigger_name == NULL) {
 
 
@@ -337,7 +337,7 @@ int main(void)
 	
   //Create a thread that runs the function ag_read_thread and check to make sure it's running every 20ms
   err = pthread_create(&agread_id, NULL, &ag_read_thread, NULL);
-  err = err;		//If you comment this out, you get a compiler warning. Otherwise, see reddit.com/r/badcode
+  //err = err;		//If you comment this out, you get a compiler warning. Otherwise, see reddit.com/r/badcode
 
   reader_runnning = true;
 

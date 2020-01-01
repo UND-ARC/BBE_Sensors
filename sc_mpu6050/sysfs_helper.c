@@ -1,3 +1,6 @@
+//Comments and changes made by ARC at the University of North Dakota
+//All changes are compliant with the Fair Use doctrine
+
 #include <string.h>
 #include <stdio.h>
 #include <types.h>
@@ -28,7 +31,7 @@ static int iio_dev_num = 0;
 #define FORMAT_SCAN_ELEMENTS_DIR "%s/scan_elements"
 #define FORMAT_TYPE_FILE "%s_type"
 
-#define CHIP_NUM sizeof(chip_name)/sizeof(char*)
+#define CHIP_NUM (int)sizeof(chip_name)/sizeof(char*)
 
 static const char *iio_dir = "/sys/bus/iio/devices/";
 
@@ -136,7 +139,7 @@ static int parsing_proc_input(int mode, char *name){
 			j = 0;
 			find_flag = 0;
 			if (mode == 0){
-				while(j < CHIP_NUM){
+				while((int)j < (int)CHIP_NUM){
 					if(!memcmp(&line[i], chip_name[j], strlen(chip_name[j]))){
 						find_flag = 1;
 						chip_ind = j;

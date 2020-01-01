@@ -29,7 +29,7 @@
 #include "types.h"          //
 #include "sysfs_helper.h"   //Identifies chip
 
-static pthread_t agread_id = NULL;		//
+static pthread_t agread_id;		//
 
 //statics
 static char *dev_dir_name, *buf_dir_name;	//Device directory name, buffer directory name (?)
@@ -159,7 +159,7 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
  * Scope          : GLOBAL
  * Comment        : -
  **************************************************************************/
-void* ag_read_thread(void* arg) {
+void* ag_read_thread() {
 	int loop_count = 0;
 	read_sysfs_float("in_anglvel_scale", dev_dir_name, &fin_anglvel_scale);
     	read_sysfs_float("in_accel_scale", dev_dir_name, &fin_accel_scale);
@@ -272,7 +272,7 @@ int discover (void)
     }
     DEBUG_MSG("chip_name=%s\n", chip_name);
 
-    for (i = 0; i < strlen(chip_name); i++) {
+    for (i = 0; i < (int)strlen(chip_name); i++) {
         device_name[i] = tolower(chip_name[i]);
     }
 //    device_name[strlen(chip_name)] = '\0';

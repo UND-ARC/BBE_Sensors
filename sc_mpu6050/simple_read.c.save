@@ -4,7 +4,8 @@
 
 
 //The BBE reads its sensors into files found in /sys/bus/iio/devices/iio:device1
-//Sysfs refers to the system's filesystem, which basically means that all info (whether a pin is active or inactive, etc) is found in a file somewhere on the BagelBone.
+//Sysfs refers to the system's filesystem, which basically means that all info
+//(whether a pin is active or inactive, etc) is found in a file somewhere on the BagelBone.
 
 /*THINGS TO TRY:
 *Remove len from read_sysfs_posint -- DONE
@@ -98,7 +99,7 @@ int read_sysfs_posint(char *filename, char *basedir, int* val) {
 }
 
 int read_sysfs_float(char *filename, char *basedir, float *val) {
-    int ret = 0;//Also declared globally
+    int ret = 0;	//Also declared globally
     FILE *sysfsfp;	//Some kind of file
 
     //Allocate memory for temp
@@ -135,7 +136,6 @@ int read_sysfs_string(char *filename, char *basedir, char* val) {
 			DEBUG_MSG("Memory allocation failed");
 			return -ENOMEM;
 		}
-
 
 		sprintf(temp, "%s/%s", basedir, filename);
 		sysfsfp = fopen(temp, "r");

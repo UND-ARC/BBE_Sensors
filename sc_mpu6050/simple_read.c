@@ -159,7 +159,7 @@ void* ag_read_thread(void* arg) {
         //Put the column headers up...
         DEBUG_MSG( "  gz    gx    gy      fgz     fgx     fgy         az    ax    ay       faz     fax     fay\n");
 
-        while ( (loop_count < 20) && (reader_runnning) ) {
+        while ( (loop_count < 200) && (reader_runnning) ) {
             //for (j = 0; j < 10000; j++) {
         	//We need to detect a failure so set to pass to start
         	ag_pass = true;
